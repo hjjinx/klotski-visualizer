@@ -18,6 +18,12 @@ const Board: React.FC<{
            {[...Array(20)].map((_, i) => <div key={i} className="border border-white/20"></div>)}
         </div>
 
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-20 pointer-events-none z-0">
+          <div className="absolute bottom-0 w-full h-full bg-linear-to-t from-emerald-900/20 to-transparent" />
+          <div className="absolute bottom-0 w-full h-1 bg-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.6)]" />
+          <div className="absolute bottom-0 w-full border-b-2 border-dashed border-emerald-500/30" />
+        </div>
+
         {blocks.map(block => {
            const bt = BLOCK_TYPES[block.type];
            const isSelected = selectedBlockId === block.id;
