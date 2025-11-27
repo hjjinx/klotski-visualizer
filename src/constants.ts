@@ -10,6 +10,14 @@ export const BLOCK_TYPES = {
 
 type PuzzleLayout = { id: number; type: keyof typeof BLOCK_TYPES; x: number; y: number }[];
 
+export const SIMPLE_LAYOUT: PuzzleLayout = [
+    { id: 1, type: "MAIN", x: 0, y: 0 },
+    { id: 2, type: "VERT", x: 2, y: 0 },
+    { id: 3, type: "VERT", x: 3, y: 0 },
+    { id: 4, type: "HORZ", x: 0, y: 2 },
+    { id: 5, type: "HORZ", x: 2, y: 2 }
+]
+
 export const CLASSIC_LAYOUT: PuzzleLayout = [
   { id: 1, type: 'VERT', x: 0, y: 0 },
   { id: 2, type: 'MAIN', x: 1, y: 0 },
@@ -49,6 +57,19 @@ export const PRETZEL_LAYOUT: PuzzleLayout = [
   { id: 9, type: 'SOLDIER', x: 0, y: 4 },
   { id: 10, type: 'SOLDIER', x: 3, y: 4 },
 ];
+
+export const HERD_LAYOUT: PuzzleLayout = [
+    { id: 1, type: "MAIN", x: 0, y: 0 },
+    { id: 2, type: "VERT", x: 2, y: 0 },
+    { id: 3, type: "HORZ", x: 0, y: 2 },
+    { id: 4, type: "SOLDIER", x: 3, y: 0 },
+    { id: 5, type: "SOLDIER", x: 3, y: 1 },
+    { id: 6, type: "SOLDIER", x: 2, y: 2 },
+    { id: 7, type: "SOLDIER", x: 3, y: 2 },
+    { id: 8, type: "VERT", x: 0, y: 3 },
+    { id: 9, type: "VERT", x: 1, y: 3 },
+    { id: 10, type: "HORZ", x: 2, y: 3 }
+]
 
 export type Block = { id: number; type: keyof typeof BLOCK_TYPES; x: number; y: number };
 export type Puzzle = { id: number; name: string; layout: Block[] };

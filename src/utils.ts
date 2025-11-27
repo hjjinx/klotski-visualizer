@@ -1,4 +1,4 @@
-import { BLOCK_TYPES, BOARD_WIDTH, BOARD_HEIGHT, CLASSIC_LAYOUT, BUTTERFLY_LAYOUT, PRETZEL_LAYOUT } from './constants';
+import { BLOCK_TYPES, BOARD_WIDTH, BOARD_HEIGHT, CLASSIC_LAYOUT, BUTTERFLY_LAYOUT, PRETZEL_LAYOUT, HERD_LAYOUT, SIMPLE_LAYOUT } from './constants';
 import type { Block } from './constants';
 
 export const cloneBlocks = (blocks: Block[] | never[]) => blocks.map(b => ({ ...b }));
@@ -41,22 +41,28 @@ export const getCurrentNode = (playBlocks: Block[]) => {
 
 export const sleep = async (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const defaultPuzzles = [
+  { id: 0, name: 'Simple Visualization', layout: SIMPLE_LAYOUT },
+  { id: 1, name: 'Classic (Huarong Pass)', layout: CLASSIC_LAYOUT },
+  { id: 2, name: 'The Butterfly', layout: BUTTERFLY_LAYOUT },
+  { id: 3, name: 'The Pretzel', layout: PRETZEL_LAYOUT },
+  { id: 4, name: 'The Herd', layout: HERD_LAYOUT }
+]
+
 export const getPuzzlesFromLocalStorage = () => {
   const saved = localStorage.getItem('customPuzzles');
   if (saved) {
     try {
       return JSON.parse(saved);
     } catch {
-      return [
-        { id: 1, name: 'Classic (Huarong Pass)', layout: CLASSIC_LAYOUT },
-        { id: 2, name: 'The Butterfly', layout: BUTTERFLY_LAYOUT },
-        { id: 3, name: 'The Pretzel', layout: PRETZEL_LAYOUT },
-      ];
+      return defaultPuzzles;
     }
   }
-  return [
-    { id: 1, name: 'Classic (Huarong Pass)', layout: CLASSIC_LAYOUT },
-    { id: 2, name: 'The Butterfly', layout: BUTTERFLY_LAYOUT },
-    { id: 3, name: 'The Pretzel', layout: PRETZEL_LAYOUT },
-  ];
+  return defaultPuzzles;
+}
+
+export const isWinner = (blocks: Block[]) => {
+  const mainBlock = blocks.find(b => b.type === 'MAIN');
+  if (!mainBlock) return false;
+  return mainBlock.x === 1 && mainBlock.y === 3;
 }

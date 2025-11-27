@@ -50,7 +50,7 @@ const Board: React.FC<{
 
                      {mode === 'create' && (
                        <button 
-                         onClick={(e) => { e.stopPropagation(); onRemoveBlock(block.id); }}
+                         onClick={(e) => { e.stopPropagation(); onRemoveBlock?.(block.id); }}
                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-lg transform scale-0 group-hover:scale-100 transition-transform z-30">
                          <Trash2 size={12} />
                        </button>

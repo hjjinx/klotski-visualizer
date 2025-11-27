@@ -12,7 +12,7 @@ import {
   ArrowUp, ArrowDown, ArrowRight
 } from 'lucide-react';
 import { BOARD_WIDTH, BOARD_HEIGHT, BLOCK_TYPES, type Block, type Puzzle, type Link, type Node } from './constants';
-import { cloneBlocks, canMove, hashState, isOccupied, getCurrentNode, getPuzzlesFromLocalStorage } from './utils';
+import { cloneBlocks, canMove, hashState, isOccupied, getCurrentNode, getPuzzlesFromLocalStorage, isWinner } from './utils';
 import ForceGraphWrapper from './components/Graph';
 import TabButton from './components/TabButton';
 import ToolboxButton from './components/ToolboxButton';
@@ -44,6 +44,7 @@ export default function KlotskiApp() {
 
   // Load 3D Lib
   useEffect(() => {
+    // @ts-ignore
     if (window.ForceGraph3D!) {
       setGraphLibLoaded(true);
       return;
@@ -85,6 +86,10 @@ export default function KlotskiApp() {
       newB[idx].x += dx;
       newB[idx].y += dy;
       setPlayBlocks(newB);
+
+      if (isWinner(newB)) {
+        setTimeout(() => alert("Congratulations! You've solved the puzzle!"), 50);
+      }
     }
   };
 
@@ -169,9 +174,9 @@ export default function KlotskiApp() {
     // Simple find first spot
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
-        let fits = true;
+        // let fits = true;
         if (x + bt.w > BOARD_WIDTH || y + bt.h > BOARD_HEIGHT) continue;
-        const mock = { id: -1, type: typeKey, x, y, w: bt.w, h: bt.h };
+        // const mock = { id: -1, type: typeKey, x, y, w: bt.w, h: bt.h };
         // Check collision against createBlocks
         // Note: isOccupied expects blocks to have 'type' to lookup dimensions usually, 
         // but here we are checking if *existing* blocks overlap *this* new space.
