@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import type { Link, Node } from "../constants";
-import { sleep, isWinner } from "../utils";
+import { sleep, isWinner, currentNodeHasWinningPath } from "../utils";
 
 const ForceGraphWrapper = ({
   data,
   onNodeClick,
   currentNode,
   simulationSpeed,
+  findFastestWinFromCurrent
 }: {
   data: { nodes: Node[]; links: Link[] };
   onNodeClick?: (node: Node) => void;
   currentNode: Node;
   simulationSpeed: number;
+  findFastestWinFromCurrent: () => void;
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // @ts-ignore
@@ -81,49 +83,46 @@ const ForceGraphWrapper = ({
 
   const simulateWin = async () => {
     if (!graphRef.current) return;
-    setIsSimulatingWin(true);
-    isSimulatingRef.current = true;
+    if (!currentNodeHasWinningPath(data, currentNode)) {
+      findFastestWinFromCurrent();
+      return;
+    }
     let previousNode = currentNode;
-    let nextLink: Link;
+    let previousLink: Link;
     for (let link of data.links) {
         // @ts-ignore
         if (link.source.id == currentNode.id) {
           // @ts-ignore
-          if (link.target.isWinningPath) {
-            nextLink = link;
+          if (link.isWinningPath) {
+            previousLink = link;
             previousNode = currentNode;
             break;
           }
         }
     }
+    setIsSimulatingWin(true);
+    isSimulatingRef.current = true;
+
     // @ts-ignore
-    if (!nextLink?.target.isWinningPath) {
-      alert("No winning path from current node.");
-      setIsSimulatingWin(false);
-      isSimulatingRef.current = false;
-      return;
-    }
+    if (previousLink) _onNodeClick(previousLink!.target);
     // @ts-ignore
-    if (nextLink) _onNodeClick(nextLink!.target);
-    // @ts-ignore
-    while (nextLink && nextLink.target.isWinningPath && !isWinner(nextLink.target.blocks)) {
+    while (previousLink?.isWinningPath && !isWinner(previousLink.target.blocks)) {
       if (!isSimulatingRef.current) break;
       await sleep(simulationSpeedRef.current);
-      if (!isSimulatingRef.current) break;
       // @ts-ignore
       for (let link of data.links) {
         // @ts-ignore
-        if (link.source.id == nextLink.target.id && previousNode.id != link.target.id) {
+        if (link.source.id == previousLink.target.id && previousNode.id != link.target.id) {
           // @ts-ignore
-          if (link.target.isWinningPath) {
-            nextLink = link;
-            previousNode = nextLink.source as Node;
+          if (link.isWinningPath) {
+            previousLink = link;
+            previousNode = previousLink.source as Node;
             break;
           }
         }
       }
       // @ts-ignore
-      if (nextLink) _onNodeClick(nextLink.target);
+      if (previousLink) _onNodeClick(previousLink.target);
     }
     isSimulatingRef.current = false;
     setIsSimulatingWin(false);
@@ -135,6 +134,7 @@ const ForceGraphWrapper = ({
         No nodes found. Try increasing the search space
       </div>
     );
+
   return (
     <>
       <div
@@ -153,21 +153,18 @@ const ForceGraphWrapper = ({
           Reset View
         </button>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded cursor-pointer"
+          className={`bg-blue-500 text-white px-4 py-2 rounded cursor-pointer ${isWinner(currentNode.blocks) ? 'opacity-50 cursor-default' : ''}`}
           style={{ marginLeft: "10px" }}
+          disabled={isWinner(currentNode.blocks)}
           onClick={
-            !isSimulatingWin
-              ? () => {
-                  setIsSimulatingWin(true);
-                  simulateWin();
-                }
-              : () => {
-                  setIsSimulatingWin(false);
-                  isSimulatingRef.current = false;
-                }
+            !isSimulatingWin ? simulateWin : 
+            () => {
+              setIsSimulatingWin(false);
+              isSimulatingRef.current = false;
+            }
           }
         >
-          {isSimulatingWin ? "Stop Simulation" : "Simulate Win"}
+          {isWinner(currentNode.blocks) ? 'You win!' : !currentNodeHasWinningPath(data, currentNode) ? "Find/Simulate Win" : isSimulatingWin ? "Stop Simulation" : "Simulate Win"}
         </button>
       </div>
       <div ref={containerRef} className="w-full h-full" />

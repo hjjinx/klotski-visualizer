@@ -12,7 +12,7 @@ import {
   ArrowUp, ArrowDown, ArrowRight
 } from 'lucide-react';
 import { BOARD_WIDTH, BOARD_HEIGHT, BLOCK_TYPES, type Block, type Puzzle, type Link, type Node } from './constants';
-import { cloneBlocks, canMove, hashState, isOccupied, getCurrentNode, getPuzzlesFromLocalStorage, isWinner } from './utils';
+import { cloneBlocks, canMove, hashState, isOccupied, getCurrentNode, getPuzzlesFromLocalStorage, isWinner, constructGrid } from './utils';
 import ForceGraphWrapper from './components/Graph';
 import TabButton from './components/TabButton';
 import ToolboxButton from './components/ToolboxButton';
@@ -97,19 +97,7 @@ export default function KlotskiApp() {
     const currentBlock = playBlocks.find(b => b.id === playSelection)!;
     if (!playSelection || !currentBlock) setPlaySelection(0);
 
-    const constructGrid = () => {
-      const grid = Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
-      for (const b of playBlocks) {
-        const blockType = BLOCK_TYPES[b.type];
-        for (let y = b.y; y < b.y + blockType.h; y++) {
-          for (let x = b.x; x < b.x + blockType.w; x++) {
-            grid[y][x] = b.id;
-          }
-        }
-      }
-      return grid;
-    }
-    const grid = constructGrid();
+    const grid = constructGrid(playBlocks);
     const blockType = BLOCK_TYPES[currentBlock.type];
     if (direction === 0) {
       for (let x = 0; x <= BOARD_WIDTH; x++) {
@@ -273,9 +261,11 @@ export default function KlotskiApp() {
                  count++;
                }
                links.push({ source: curr!.id, target: nextHash });
+               // this is done to stop the tree from expanding after finding a win
                if (foundWin) break;
             }
           }
+          // this is done to stop the tree from expanding after finding a win
           if (foundWin) break;
         }
       }
@@ -313,6 +303,88 @@ export default function KlotskiApp() {
       setIsGraphLoading(false);
     }, 100);
   };
+
+  // Implements a BFS to find the fastest win from current playBlocks
+  const findFastestWinFromCurrent = () => {
+    if (!graphLibLoaded) return;
+    setIsGraphLoading(true);
+    setTimeout(() => {
+      const visited = new Set();
+      const newNodes: Node[] = [];
+      const newLinks = [];
+      const predecessors = new Map();
+      const startNode = getCurrentNode(playBlocks);
+      let queue = [startNode];
+
+      let winningNodeId = null;
+
+      while(queue.length > 0) {
+        const curr = queue.shift();
+        const currBlocks = curr!.blocks;
+        let foundWin = false;
+
+        for(let i=0; i<currBlocks.length; i++) {
+          const b = currBlocks[i];
+          const moves = [{dx:0, dy:-1}, {dx:0, dy:1}, {dx:-1, dy:0}, {dx:1, dy:0}];
+          for(const m of moves) {
+            if(canMove(b, m.dx, m.dy, currBlocks)) {
+              const nextB = cloneBlocks(currBlocks);
+              nextB[i].x += m.dx;
+              nextB[i].y += m.dy;
+              const nextHash = hashState(nextB);
+
+              if (!visited.has(nextHash)) {
+                visited.add(nextHash);
+                predecessors.set(nextHash, curr!.id); 
+                
+                const main = nextB.find(nb => nb.type === 'MAIN');
+                const isWin = main && main.x === 1 && main.y === 3;
+                
+                const newNode = { id: nextHash, blocks: nextB, group: 2, val: 5, isWinningPath: true };
+                newNodes.push(newNode);
+                queue.push(newNode);
+                if (isWin) {
+                  foundWin = true;
+                  winningNodeId = nextHash; 
+                }
+              }
+              newLinks.push({ source: curr!.id, target: nextHash, isWinningPath: true });
+              if (foundWin) break;
+            }
+            if (foundWin) break;
+          }
+          if (foundWin) break;
+        }
+        if (foundWin) break;
+      }
+
+      // Backtrack to find winning path
+      const winningPathNodes = new Set();
+      const winningPathLinks = new Set();
+      
+      if (winningNodeId) {
+        let trace = winningNodeId;
+        winningPathNodes.add(trace);
+        while(trace !== startNode.id) {
+            const parent = predecessors.get(trace);
+            if (!parent) break;
+            winningPathNodes.add(parent);
+            winningPathLinks.add(`${parent}|${trace}`);
+            trace = parent;
+        }
+      }
+
+      
+      const filteredNewNodes = newNodes.filter(n => winningPathNodes.has(n.id) && graphData.nodes.every(existing => existing.id !== n.id));
+      const filteredNewLinks = newLinks.filter(n => winningPathLinks.has(`${n.source}|${n.target}`));
+
+      const finalNodes = [...graphData.nodes, ...filteredNewNodes];
+      const finalLinks = [...graphData.links, ...filteredNewLinks];
+
+      setGraphData({ nodes: finalNodes, links: finalLinks });
+      setIsGraphLoading(false);
+    }, 100);
+  }
 
   // --- Render Helpers ---
 
@@ -502,6 +574,7 @@ export default function KlotskiApp() {
                onNodeClick={onNodeClick}
                currentNode={getCurrentNode(playBlocks)}
                simulationSpeed={simulationSpeed}
+               findFastestWinFromCurrent={findFastestWinFromCurrent}
              />
           </div>
         )}

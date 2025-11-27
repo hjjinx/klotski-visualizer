@@ -30,8 +30,23 @@ export const canMove = (block: Block, dx: number, dy: number, allBlocks: Block[]
   return true;
 };
 
+export const constructGrid = (blocks: Block[]) => {
+  const grid = Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+  for (const b of blocks) {
+    const blockType = BLOCK_TYPES[b.type];
+    for (let y = b.y; y < b.y + blockType.h; y++) {
+      for (let x = b.x; x < b.x + blockType.w; x++) {
+        grid[y][x] = b.id;
+      }
+    }
+  }
+  return grid;
+}
+
 export const hashState = (blocks: Block[]) => {
-  return blocks.map(b => `${b.type}:${b.x},${b.y}`).sort().join('|');
+  let grid = constructGrid(blocks);
+  grid = grid.map(row => row.map(i => (i != null ? blocks.find(b => b.id === i)!.type.charAt(0) : null)));
+  return grid.flat().toString();
 };
 
 export const getCurrentNode = (playBlocks: Block[]) => {
@@ -65,4 +80,15 @@ export const isWinner = (blocks: Block[]) => {
   const mainBlock = blocks.find(b => b.type === 'MAIN');
   if (!mainBlock) return false;
   return mainBlock.x === 1 && mainBlock.y === 3;
+}
+
+export const currentNodeHasWinningPath = (data: { nodes: any[]; links: any[] }, currentNode: any) => {
+  for (let link of data.links) {
+      // @ts-ignore
+      if (link.source.id == currentNode.id) {
+        // @ts-ignore
+        if (link.isWinningPath) return true;
+      }
+  }
+  return false;
 }
