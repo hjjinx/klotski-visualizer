@@ -41,6 +41,8 @@ export default function KlotskiApp() {
   const [isGraphLoading, setIsGraphLoading] = useState(false);
   const [graphLibLoaded, setGraphLibLoaded] = useState(true);
   const [showWinningPathOnly, setShowWinningPathOnly] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.001);
+  const zoomLevelRef = useRef(1000);
   const graphRef = useRef<ReturnType<any> | null>(null);
 
   // Load 3D Lib
@@ -56,6 +58,10 @@ export default function KlotskiApp() {
     script.onload = () => setGraphLibLoaded(true);
     document.body.appendChild(script);
   }, []);
+
+  useEffect(() => {
+    zoomLevelRef.current = 1 / zoomLevel;
+  }, [zoomLevel])
 
   const displayedGraphData = useMemo(() => {
     if (!showWinningPathOnly) return {...graphData};
@@ -497,9 +503,8 @@ export default function KlotskiApp() {
     </div>
   );
 
-  const onNodeClick = (node: Node) => {
-    const distance = 600;
-    const distRatio = 1 + distance / Math.hypot(node.x!, node.y!, node.z!);
+  const onNodeClick = (node: Node, isTriggeredForAFocus = false) => {
+    const distRatio = 1 + zoomLevelRef.current / Math.hypot(node.x!, node.y!, node.z!);
     graphRef.current.cameraPosition(
       {
         x: node.x! * distRatio,
@@ -509,6 +514,8 @@ export default function KlotskiApp() {
       node,
       simulationSpeed
     );
+    setPlayBlocks(node.blocks)
+    if (isTriggeredForAFocus) return;
     graphData.nodes.forEach(n => {
       if (n.group == 1) {
         const {x, y} = n.blocks.find(b => b.type === 'MAIN')!;
@@ -518,7 +525,6 @@ export default function KlotskiApp() {
         n.group = 1;
       }
     });
-    setPlayBlocks(node.blocks)
     graphRef.current.nodeColor(graphRef.current.nodeColor());
   };
 
@@ -620,6 +626,8 @@ export default function KlotskiApp() {
                simulationSpeed={simulationSpeed}
                findFastestWinFromCurrent={findFastestWinFromCurrent}
                graphRef={graphRef}
+               zoomLevel={zoomLevel}
+               setZoomLevel={setZoomLevel}
              />
           </div>
         )}

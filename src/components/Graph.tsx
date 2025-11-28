@@ -8,14 +8,18 @@ const ForceGraphWrapper = ({
   currentNode,
   simulationSpeed,
   findFastestWinFromCurrent,
-  graphRef
+  graphRef,
+  zoomLevel,
+  setZoomLevel
 }: {
   data: { nodes: Node[]; links: Link[] };
-  onNodeClick: (node: Node) => void;
+  onNodeClick: (node: Node, isTriggeredForAFocus?: boolean) => void;
   currentNode: Node;
   simulationSpeed: number;
   findFastestWinFromCurrent: () => void;
   graphRef: React.MutableRefObject<ReturnType<any> | null>;
+  zoomLevel: number;
+  setZoomLevel: (level: number) => void;
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // @ts-ignore
@@ -113,6 +117,14 @@ const ForceGraphWrapper = ({
     setIsSimulatingWin(false);
   };
 
+  const focusOnCurrentNode = () => {
+    if (!graphRef.current) return;
+    const node = data.nodes.find(n => n.id === currentNode.id);
+    if (node) {
+      onNodeClick(node, true);
+    }
+  }
+
   if (!data || data.nodes.length == 0)
     return (
       <div className="w-full h-full flex items-center justify-center">
@@ -123,10 +135,16 @@ const ForceGraphWrapper = ({
   return (
     <>
       <div
-        style={{ position: "absolute", top: "10px", right: "50px", zIndex: 1 }}
+        style={{ position: "absolute", top: "10px", right: "20px", zIndex: 1 }}
       >
         <button
           className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+          onClick={focusOnCurrentNode}
+        >
+          Focus on Current Node
+        </button>
+        <button
+          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors cursor-pointer ml-2"
           onClick={() => {
             setIsSimulatingWin(false);
             isSimulatingRef.current = false;
@@ -138,8 +156,7 @@ const ForceGraphWrapper = ({
           Reset View
         </button>
         <button
-          className={`bg-blue-500 text-white px-4 py-2 rounded cursor-pointer ${isWinner(currentNode.blocks) ? 'opacity-50 cursor-default' : ''}`}
-          style={{ marginLeft: "10px" }}
+          className={`bg-blue-500 text-white px-4 py-2 rounded cursor-pointer ml-2 ${isWinner(currentNode.blocks) ? 'opacity-50 cursor-default' : ''}`}
           disabled={isWinner(currentNode.blocks)}
           onClick={
             !isSimulatingWin ? simulateWin : 
@@ -151,6 +168,14 @@ const ForceGraphWrapper = ({
         >
           {isWinner(currentNode.blocks) ? 'You win!' : !currentNodeHasWinningPath(data, currentNode) ? "Find/Simulate Win" : isSimulatingWin ? "Stop Simulation" : "Simulate Win"}
         </button>
+      </div>
+      <div
+        style={{ position: "absolute", bottom: "10px", right: "50px", zIndex: 1 }}
+      >
+        <input type="range" min={0.0003} max={0.005} step={0.00005} value={zoomLevel} onChange={(e) => { setZoomLevel(Number(e.target.value)); focusOnCurrentNode();}} className="w-full mb-1"/>
+        <div className="text-slate-300 text-xs mb-3 text-center">
+          Zoom
+        </div>
       </div>
       <div ref={containerRef} className="w-full h-full" />
     </>
