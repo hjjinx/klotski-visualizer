@@ -1,13 +1,75 @@
 import { Trash2 } from "lucide-react";
 import { type Block, BOARD_WIDTH, BOARD_HEIGHT, BLOCK_TYPES } from "../constants";
+import { useState } from "react";
+
+interface DragState {
+  id: number;
+  currentX: number;
+  currentY: number;
+}
 
 const Board: React.FC<{ 
   blocks: Block[], 
   selectedBlockId: number | null, 
   onBlockClick: (id: number) => void, 
   mode: string, 
-  onRemoveBlock?: (id: number) => void 
-}> = ({ blocks, selectedBlockId, onBlockClick, mode, onRemoveBlock }) => {
+  onRemoveBlock?: (id: number) => void;
+  onBlockMove?: (id: number, x: number, y: number) => void; 
+}> = ({ blocks, selectedBlockId, onBlockClick, mode, onRemoveBlock, onBlockMove }) => {
+  const [dragState, setDragState] = useState<DragState | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent, block: Block) => {
+    if (mode !== 'create') return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+
+    onBlockClick(block.id);
+
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    
+    const startBlockX = block.x * 80;
+    const startBlockY = block.y * 80;
+
+    setDragState({
+      id: block.id,
+      currentX: startBlockX,
+      currentY: startBlockY
+    });
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startMouseX;
+      const dy = ev.clientY - startMouseY;
+
+      setDragState({
+        id: block.id,
+        currentX: startBlockX + dx,
+        currentY: startBlockY + dy
+      });
+    };
+
+    const handleMouseUp = (ev: MouseEvent) => {
+      const dx = ev.clientX - startMouseX;
+      const dy = ev.clientY - startMouseY;
+      
+      const finalGridX = Math.round((startBlockX + dx) / 80);
+      const finalGridY = Math.round((startBlockY + dy) / 80);
+
+      if (onBlockMove) {
+        onBlockMove(block.id, finalGridX, finalGridY);
+      }
+
+      setDragState(null);
+      
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div 
       className="bg-[#2a2a35] p-2 rounded-xl shadow-2xl border-4 border-[#3f3f4e] relative"
@@ -28,17 +90,26 @@ const Board: React.FC<{
            const bt = BLOCK_TYPES[block.type];
            const isSelected = selectedBlockId === block.id;
            
+           const isDragging = dragState?.id === block.id;
+
+           const transformStyle = isDragging 
+             ? `translate(${dragState.currentX}px, ${dragState.currentY}px)`
+             : `translate(${block.x * 80}px, ${block.y * 80}px)`;
+
            return (
              <div
                 key={block.id}
+                onMouseDown={(e) => handleMouseDown(e, block)}
                 onClick={() => onBlockClick(block.id)}
-                className={`absolute transition-all duration-200 cursor-pointer group
-                  ${isSelected ? 'z-20' : 'z-10'}
+                className={`absolute transition-transform duration-200 cursor-pointer group
+                  ${isDragging ? 'z-50 duration-0' : ''} 
+                  ${isSelected && !isDragging ? 'z-20' : 'z-10'}
                 `}
                 style={{
                   width: bt.w * 80,
                   height: bt.h * 80,
-                  transform: `translate(${block.x * 80}px, ${block.y * 80}px)`
+                  transform: transformStyle,
+                  cursor: mode === 'create' ? 'grab' : 'pointer'
                 }}
              >
                <div className="w-full h-full p-1">
@@ -48,6 +119,7 @@ const Board: React.FC<{
                     ${bt.color}
                     ${isSelected ? 'ring-4 ring-white ring-opacity-60 brightness-110' : 'hover:brightness-105'}
                     border border-white/10
+                    ${isDragging ? 'shadow-2xl scale-105' : ''}
                   `}>
                      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]"></div>
                      <span className="text-white/90 font-bold text-shadow-sm select-none z-10 text-xl">
@@ -56,8 +128,10 @@ const Board: React.FC<{
 
                      {mode === 'create' && (
                        <button 
+                         onMouseDown={(e) => e.stopPropagation()}
                          onClick={(e) => { e.stopPropagation(); onRemoveBlock?.(block.id); }}
-                         className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-lg transform scale-0 group-hover:scale-100 transition-transform z-30">
+                         // Only show delete button if not dragging
+                         className={`absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-lg transform scale-0 group-hover:scale-100 transition-transform z-30 cursor-pointer ${isDragging ? 'hidden' : ''}`}>
                          <Trash2 size={12} />
                        </button>
                      )}

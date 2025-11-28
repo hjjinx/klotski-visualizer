@@ -14,20 +14,48 @@ const CreatePuzzle: React.FC<{
   const [createBlocks, setCreateBlocks] = useState<Block[]>([]);
   const [newPuzzleName, setNewPuzzleName] = useState('');
 
+  const handleBlockMove = (id: number, newX: number, newY: number) => {
+    const block = createBlocks.find(b => b.id === id);
+    if (!block) return;
+
+    const bt = BLOCK_TYPES[block.type];
+
+    if (newX < 0 || newY < 0 || newX + bt.w > BOARD_WIDTH || newY + bt.h > BOARD_HEIGHT) {
+      return; 
+    }
+
+    const otherBlocks = createBlocks.filter(b => b.id !== id);
+    let collision = false;
+    
+    for(let x = newX; x < newX + bt.w; x++) {
+      for(let y = newY; y < newY + bt.h; y++) {
+        if (isOccupied(x, y, otherBlocks)) {
+          collision = true;
+          break;
+        }
+      }
+    }
+
+    if (!collision) {
+      setCreateBlocks(prev => prev.map(b => b.id === id ? { ...b, x: newX, y: newY } : b));
+    }
+  };
+
   const handleAddBlock = (typeKey: keyof typeof BLOCK_TYPES) => {
+    if (typeKey === 'MAIN') {
+      const hasKing = createBlocks.some(b => b.type === 'MAIN');
+      if (hasKing) {
+        alert("Only one King (Main block) is allowed!");
+        return;
+      }
+    }
+
     const bt = BLOCK_TYPES[typeKey];
-    // Simple find first spot
+    
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
-        // let fits = true;
         if (x + bt.w > BOARD_WIDTH || y + bt.h > BOARD_HEIGHT) continue;
-        // const mock = { id: -1, type: typeKey, x, y, w: bt.w, h: bt.h };
-        // Check collision against createBlocks
-        // Note: isOccupied expects blocks to have 'type' to lookup dimensions usually, 
-        // but here we are checking if *existing* blocks overlap *this* new space.
-        // We pass createBlocks. Existing blocks have valid types.
         
-        // We need to check if the NEW space is occupied by ANY existing block
         let spaceFree = true;
         for(let checkX = x; checkX < x + bt.w; checkX++) {
             for(let checkY = y; checkY < y + bt.h; checkY++) {
@@ -51,6 +79,10 @@ const CreatePuzzle: React.FC<{
   const handleSavePuzzle = () => {
     if (!newPuzzleName.trim()) {
       alert("Please give your puzzle a name.");
+      return;
+    }
+    if (!createBlocks.some(b => b.type === 'MAIN')) {
+      alert("You must include the King (Main block) to save.");
       return;
     }
     if (createBlocks.length === 0) {
@@ -122,13 +154,14 @@ const CreatePuzzle: React.FC<{
 
       <div className="flex-1 bg-slate-900 flex flex-col items-center justify-center relative bg-[radial-gradient(#334155_1px,transparent_1px)] bg-size-[20px_20px]">
          <div className="mb-4 text-slate-400 text-sm bg-slate-800/80 px-4 py-2 rounded-full backdrop-blur-sm">
-            Drag & Drop is disabled. Click blocks in toolbox to add, click 'Trash' icon on block to remove.
+            Drag blocks to move them. Click 'Trash' icon on block to remove.
          </div>
          <Board 
            blocks={createBlocks} 
            selectedBlockId={null} 
            onBlockClick={() => {}}
            mode="create"
+           onBlockMove={handleBlockMove}
            onRemoveBlock={(id) => setCreateBlocks(createBlocks.filter(b => b.id !== id))}
          />
       </div>
