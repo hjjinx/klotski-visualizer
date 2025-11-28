@@ -518,9 +518,9 @@ export default function KlotskiApp() {
     if (isTriggeredForAFocus) return;
     graphData.nodes.forEach(n => {
       if (n.group == 1) {
-        const {x, y} = n.blocks.find(b => b.type === 'MAIN')!;
-        if (x == 1 && y == 3) n.group = 3; // Winning node
-        else n.group = 2
+        const winningBlock = n.blocks.find(b => b.type === 'MAIN');
+        if (winningBlock?.x == 1 && winningBlock?.y == 3) n.group = 3;
+        else n.group = 2;
       } else if (n.id === node.id) {
         n.group = 1;
       }
