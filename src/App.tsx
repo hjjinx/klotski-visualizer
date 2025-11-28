@@ -41,6 +41,7 @@ export default function KlotskiApp() {
   const [isGraphLoading, setIsGraphLoading] = useState(false);
   const [graphLibLoaded, setGraphLibLoaded] = useState(true);
   const [showWinningPathOnly, setShowWinningPathOnly] = useState(false);
+  const graphRef = useRef<ReturnType<any> | null>(null);
 
   // Load 3D Lib
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function KlotskiApp() {
     setPlaySelection(null);
     setShowGraph(false);
     setGraphData({ nodes: [], links: [] }); // Reset graph
+    generateGraph(cloneBlocks(puzzle.layout))
   };
 
   const handlePlayBlockClick = (id: number) => {
@@ -85,13 +87,41 @@ export default function KlotskiApp() {
       const newB = cloneBlocks(playBlocks);
       newB[idx].x += dx;
       newB[idx].y += dy;
-      setPlayBlocks(newB);
 
       if (isWinner(newB)) {
         setTimeout(() => alert("Congratulations! You've solved the puzzle!"), 50);
       }
+      setPlayBlocks(newB);
+      if (graphRef.current) simulateNodeClick(newB);
     }
   };
+
+  const simulateNodeClick = (newB: Block[]) => {
+    const node = graphData.nodes.find(n => n.id === hashState(newB));
+
+    if (node) {
+      // @ts-ignore
+      const link = graphData.links.find(l => l.target.id === node!.id && l.source.id === hashState(playBlocks));
+      if (link) {
+        onNodeClick(node);
+        return;
+      } else {
+        const newLink = { source: hashState(playBlocks), target: node.id };
+        const newGraphData = { ...graphData };
+        newGraphData.links.push(newLink);
+        setGraphData(newGraphData);
+        setTimeout(() => onNodeClick(node), 50);
+      }
+    } else {
+      const newNode = {...getCurrentNode(newB), group: 2, val: 5 };
+      const newLink = { source: hashState(playBlocks), target: newNode.id };
+      const newGraphData = { ...graphData };
+      newGraphData.nodes.push(newNode);
+      newGraphData.links.push(newLink);
+      setGraphData(newGraphData);
+      setTimeout(() => onNodeClick(newNode), 50);
+    }
+  }
 
   const handlePlaySelectionChange = (direction: number) => {
     const currentBlock = playBlocks.find(b => b.id === playSelection)!;
@@ -214,7 +244,7 @@ export default function KlotskiApp() {
     setActiveTab('play');
   };
 
-  const generateGraph = () => {
+  const generateGraph = (from?: Block[]) => {
     if (!graphLibLoaded) return;
     setIsGraphLoading(true);
     setTimeout(() => {
@@ -224,7 +254,7 @@ export default function KlotskiApp() {
       const queue = [];
       const predecessors = new Map(); // Store path for backtracking: childId -> parentId
 
-      const startNode = getCurrentNode(playBlocks);
+      const startNode = getCurrentNode(from ?? playBlocks);
       
       visited.add(startNode.id);
       nodes.push(startNode);
@@ -317,11 +347,13 @@ export default function KlotskiApp() {
       let queue = [startNode];
 
       let winningNodeId = null;
+      let count = 0;
 
       while(queue.length > 0) {
         const curr = queue.shift();
         const currBlocks = curr!.blocks;
         let foundWin = false;
+        count++;
 
         for(let i=0; i<currBlocks.length; i++) {
           const b = currBlocks[i];
@@ -357,6 +389,7 @@ export default function KlotskiApp() {
         }
         if (foundWin) break;
       }
+      console.log('Total nodes explored to find win:', count);
 
       // Backtrack to find winning path
       const winningPathNodes = new Set();
@@ -465,9 +498,19 @@ export default function KlotskiApp() {
   );
 
   const onNodeClick = (node: Node) => {
-    let foundCurrentNode = false;
+    const distance = 600;
+    const distRatio = 1 + distance / Math.hypot(node.x!, node.y!, node.z!);
+    graphRef.current.cameraPosition(
+      {
+        x: node.x! * distRatio,
+        y: node.y! * distRatio,
+        z: node.z! * distRatio,
+      },
+      node,
+      simulationSpeed
+    );
     graphData.nodes.forEach(n => {
-      if (!foundCurrentNode && n.group == 1) {
+      if (n.group == 1) {
         const {x, y} = n.blocks.find(b => b.type === 'MAIN')!;
         if (x == 1 && y == 3) n.group = 3; // Winning node
         else n.group = 2
@@ -476,7 +519,8 @@ export default function KlotskiApp() {
       }
     });
     setPlayBlocks(node.blocks)
-  }
+    graphRef.current.nodeColor(graphRef.current.nodeColor());
+  };
 
   const renderPlayGame = () => (
     <div className="flex flex-col md:flex-row h-full w-full overflow-auto">
@@ -492,7 +536,7 @@ export default function KlotskiApp() {
           <h2 className="text-2xl font-bold text-white truncate">{activePuzzle?.name}</h2>
           <div className="flex gap-2 mt-4">
             <button 
-              onClick={() => { setPlayBlocks(cloneBlocks(activePuzzle!.layout)); setPlaySelection(null); }}
+              onClick={() => { setPlayBlocks(cloneBlocks(activePuzzle!.layout)); setPlaySelection(null); simulateNodeClick(cloneBlocks(activePuzzle!.layout)); }}
               className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium text-slate-200 flex items-center justify-center gap-2"
             >
               <RotateCcw size={16} /> Reset
@@ -501,7 +545,7 @@ export default function KlotskiApp() {
               onClick={() => { setShowGraph(!showGraph); if(!showGraph && graphData.nodes.length===0) generateGraph(); }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${showGraph ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
             >
-              <Activity size={16} /> {showGraph ? 'Hide Graph' : 'Analyze'}
+              <Activity size={16} /> {showGraph ? 'Hide Graph' : 'Show Graph'}
             </button>
           </div>
         </div>
@@ -575,6 +619,7 @@ export default function KlotskiApp() {
                currentNode={getCurrentNode(playBlocks)}
                simulationSpeed={simulationSpeed}
                findFastestWinFromCurrent={findFastestWinFromCurrent}
+               graphRef={graphRef}
              />
           </div>
         )}

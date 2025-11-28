@@ -7,17 +7,18 @@ const ForceGraphWrapper = ({
   onNodeClick,
   currentNode,
   simulationSpeed,
-  findFastestWinFromCurrent
+  findFastestWinFromCurrent,
+  graphRef
 }: {
   data: { nodes: Node[]; links: Link[] };
-  onNodeClick?: (node: Node) => void;
+  onNodeClick: (node: Node) => void;
   currentNode: Node;
   simulationSpeed: number;
   findFastestWinFromCurrent: () => void;
+  graphRef: React.MutableRefObject<ReturnType<any> | null>;
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // @ts-ignore
-  const graphRef = useRef<ReturnType<typeof ForceGraph3D> | null>(null);
   const [isSimulatingWin, setIsSimulatingWin] = useState(false);
   const isSimulatingRef = useRef(false);
   const simulationSpeedRef = useRef(simulationSpeed);
@@ -42,7 +43,7 @@ const ForceGraphWrapper = ({
       .onNodeClick((node: Node) => {
         setIsSimulatingWin(false);
         isSimulatingRef.current = false;
-        _onNodeClick(node);
+        onNodeClick(node);
       });
     Graph.d3Force("charge").strength(-120);
     graphRef.current = Graph;
@@ -64,22 +65,6 @@ const ForceGraphWrapper = ({
   useEffect(() => {
     simulationSpeedRef.current = simulationSpeed;
   }, [simulationSpeed]);
-
-  const _onNodeClick = (node: Node) => {
-    const distance = 600;
-    const distRatio = 1 + distance / Math.hypot(node.x!, node.y!, node.z!);
-    graphRef.current.cameraPosition(
-      {
-        x: node.x! * distRatio,
-        y: node.y! * distRatio,
-        z: node.z! * distRatio,
-      },
-      node,
-      simulationSpeedRef.current
-    );
-    if (onNodeClick) onNodeClick(node);
-    graphRef.current.nodeColor(graphRef.current.nodeColor());
-  };
 
   const simulateWin = async () => {
     if (!graphRef.current) return;
@@ -104,7 +89,7 @@ const ForceGraphWrapper = ({
     isSimulatingRef.current = true;
 
     // @ts-ignore
-    if (previousLink) _onNodeClick(previousLink!.target);
+    if (previousLink) onNodeClick(previousLink!.target);
     // @ts-ignore
     while (previousLink?.isWinningPath && !isWinner(previousLink.target.blocks)) {
       if (!isSimulatingRef.current) break;
@@ -122,7 +107,7 @@ const ForceGraphWrapper = ({
         }
       }
       // @ts-ignore
-      if (previousLink) _onNodeClick(previousLink.target);
+      if (previousLink) onNodeClick(previousLink.target);
     }
     isSimulatingRef.current = false;
     setIsSimulatingWin(false);
