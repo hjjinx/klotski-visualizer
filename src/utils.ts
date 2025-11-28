@@ -44,9 +44,23 @@ export const constructGrid = (blocks: Block[]) => {
 }
 
 export const hashState = (blocks: Block[]) => {
-  let grid = constructGrid(blocks);
-  grid = grid.map(row => row.map(i => (i != null ? blocks.find(b => b.id === i)!.type.charAt(0) : null)));
-  return grid.flat().toString();
+  const grid = new Array(BOARD_WIDTH * BOARD_HEIGHT).fill('.');
+
+  for (const b of blocks) {
+    const { w, h } = BLOCK_TYPES[b.type];
+    
+    const endY = b.y + h;
+    const endX = b.x + w;
+
+    for (let y = b.y; y < endY; y++) {
+      const rowOffset = y * BOARD_WIDTH;
+      for (let x = b.x; x < endX; x++) {
+        grid[rowOffset + x] = b.type[0];
+      }
+    }
+  }
+
+  return grid.join('');
 };
 
 export const getCurrentNode = (playBlocks: Block[]) => {
