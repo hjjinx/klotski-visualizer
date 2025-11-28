@@ -30,7 +30,11 @@ const PuzzlePlaylist: React.FC<{
           </li>
           <li className="flex gap-3">
             <span className="px-2 py-1 rounded-md bg-slate-700 text-xs font-mono h-min">4</span>
-            <span>Use Reset to restart. Use Analyze to explore the state-space graph of all reachable positions.</span>
+            <span>Use Reset to restart. Click <code>Show Graph</code> to display the state-space graph of all reachable positions.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="px-2 py-1 rounded-md bg-slate-700 text-xs font-mono h-min">4</span>
+            <span>Click <code>Find/Simulate Win</code> to find a winning path and simulate the solution.</span>
           </li>
           <li className="flex gap-3">
             <span className="px-2 py-1 rounded-md bg-slate-700 text-xs font-mono h-min">5</span>

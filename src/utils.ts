@@ -1,4 +1,4 @@
-import { BLOCK_TYPES, BOARD_WIDTH, BOARD_HEIGHT, CLASSIC_LAYOUT, BUTTERFLY_LAYOUT, PRETZEL_LAYOUT, HERD_LAYOUT, SIMPLE_LAYOUT } from './constants';
+import { BLOCK_TYPES, BOARD_WIDTH, BOARD_HEIGHT, CLASSIC_LAYOUT, IRON_GOLEM_LAYOUT, HOOCHIE_LAYOUT, HALF_COW_LAYOUT, SIMPLE_LAYOUT } from './constants';
 import type { Block, Link, Node } from './constants';
 
 export const cloneBlocks = (blocks: Block[] | never[]) => blocks.map(b => ({ ...b }));
@@ -72,10 +72,10 @@ export const sleep = async (ms: number) => new Promise(resolve => setTimeout(res
 
 const defaultPuzzles = [
   { id: 0, name: 'Simple Visualization', layout: SIMPLE_LAYOUT },
-  { id: 1, name: 'Classic (Huarong Pass)', layout: CLASSIC_LAYOUT },
-  { id: 2, name: 'The Butterfly', layout: BUTTERFLY_LAYOUT },
-  { id: 3, name: 'The Pretzel', layout: PRETZEL_LAYOUT },
-  { id: 4, name: 'The Herd', layout: HERD_LAYOUT }
+  { id: 1, name: 'Classic (Huarong Pass) 🥢', layout: CLASSIC_LAYOUT },
+  { id: 2, name: 'Iron Golem 🤖', layout: IRON_GOLEM_LAYOUT },
+  { id: 3, name: 'The Hoochie 🤦‍♀️', layout: HOOCHIE_LAYOUT },
+  { id: 4, name: 'Half Cow 🐄', layout: HALF_COW_LAYOUT }
 ]
 
 export const getPuzzlesFromLocalStorage = () => {

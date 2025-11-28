@@ -31,7 +31,7 @@ export const CLASSIC_LAYOUT: PuzzleLayout = [
   { id: 10, type: 'SOLDIER', x: 3, y: 4 },
 ];
 
-export const BUTTERFLY_LAYOUT: PuzzleLayout = [
+export const IRON_GOLEM_LAYOUT: PuzzleLayout = [
   { id: 1, type: 'VERT', x: 0, y: 0 },
   { id: 2, type: 'MAIN', x: 1, y: 0 },
   { id: 3, type: 'VERT', x: 3, y: 0 },
@@ -45,7 +45,7 @@ export const BUTTERFLY_LAYOUT: PuzzleLayout = [
   { id: 11, type: 'SOLDIER', x: 2, y: 4 },
 ];
 
-export const PRETZEL_LAYOUT: PuzzleLayout = [
+export const HOOCHIE_LAYOUT: PuzzleLayout = [
   { id: 1, type: 'VERT', x: 0, y: 0 },
   { id: 2, type: 'MAIN', x: 1, y: 0 },
   { id: 3, type: 'VERT', x: 3, y: 0 },
@@ -58,7 +58,7 @@ export const PRETZEL_LAYOUT: PuzzleLayout = [
   { id: 10, type: 'SOLDIER', x: 3, y: 4 },
 ];
 
-export const HERD_LAYOUT: PuzzleLayout = [
+export const HALF_COW_LAYOUT: PuzzleLayout = [
     { id: 1, type: "MAIN", x: 0, y: 0 },
     { id: 2, type: "VERT", x: 2, y: 0 },
     { id: 3, type: "HORZ", x: 0, y: 2 },
