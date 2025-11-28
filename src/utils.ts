@@ -1,5 +1,5 @@
 import { BLOCK_TYPES, BOARD_WIDTH, BOARD_HEIGHT, CLASSIC_LAYOUT, BUTTERFLY_LAYOUT, PRETZEL_LAYOUT, HERD_LAYOUT, SIMPLE_LAYOUT } from './constants';
-import type { Block } from './constants';
+import type { Block, Link, Node } from './constants';
 
 export const cloneBlocks = (blocks: Block[] | never[]) => blocks.map(b => ({ ...b }));
 
@@ -106,3 +106,167 @@ export const currentNodeHasWinningPath = (data: { nodes: any[]; links: any[] }, 
   }
   return false;
 }
+
+export const handlePlaySelectionChange = (direction: number, playBlocks: Block[], playSelection: number | null, setPlaySelection: (id: number | null) => void) => {
+  const currentBlock = playBlocks.find(b => b.id === playSelection)!;
+  if (!playSelection || !currentBlock) setPlaySelection(0);
+
+  try {
+    const grid = constructGrid(playBlocks);
+    const blockType = BLOCK_TYPES[currentBlock.type];
+    if (direction === 0) {
+      for (let x = 0; x <= BOARD_WIDTH; x++) {
+        for (let y = currentBlock.y - 1; y >= 0; y--) {
+          let b = grid[y][currentBlock.x - x];
+          if (b) { setPlaySelection(b); return; }
+          b = grid[y][currentBlock.x + x];
+          if (b) { setPlaySelection(b); return; }
+        }
+      }
+    }
+    else if (direction === 1) {
+      for (let x = 0; x <= BOARD_WIDTH; x++) {
+        for (let y = currentBlock.y + blockType.h; y <= BOARD_HEIGHT; y++) {
+          let b = grid[y][currentBlock.x - x];
+          if (b) { setPlaySelection(b); return; }
+          b = grid[y][currentBlock.x + x];
+          if (b) { setPlaySelection(b); return; }
+        }
+      }
+    }
+    else if (direction === 2) {
+      for (let y = 0; y <= BOARD_HEIGHT; y++) {
+        for (let x = currentBlock.x - 1; x >= 0; x--) {
+          let b = grid[currentBlock.y - y][x];
+          if (b) { setPlaySelection(b); return; }
+          b = grid[currentBlock.y + y][x];
+          if (b) { setPlaySelection(b); return; }
+        }
+      }
+    }
+    else if (direction === 3) {
+      for (let y = 0; y <= BOARD_HEIGHT; y++) {
+        for (let x = currentBlock.x + blockType.w; x <= BOARD_WIDTH; x++) {
+          let b = grid[currentBlock.y - y][x];
+          if (b) { setPlaySelection(b); return; }
+          b = grid[currentBlock.y + y][x];
+          if (b) { setPlaySelection(b); return; }
+        }
+      }
+    }
+  } catch (err) {
+    // ignore errors in selection change
+  }
+};
+
+export const getNextStates = (currentBlocks: Block[]) => {
+  const nextStates = [];
+  const moves = [{dx:0, dy:-1}, {dx:0, dy:1}, {dx:-1, dy:0}, {dx:1, dy:0}];
+
+  for (let i = 0; i < currentBlocks.length; i++) {
+    const b = currentBlocks[i];
+    for (const m of moves) {
+      if (canMove(b, m.dx, m.dy, currentBlocks)) {
+        const nextB = cloneBlocks(currentBlocks);
+        nextB[i].x += m.dx;
+        nextB[i].y += m.dy;
+        
+        const main = nextB.find(nb => nb.type === 'MAIN');
+        const isWin = main && main.x === 1 && main.y === 3;
+        
+        nextStates.push({
+          blocks: nextB,
+          hash: hashState(nextB),
+          isWin
+        });
+      }
+    }
+  }
+  return nextStates;
+};
+
+export const getWinningPathIds = (
+  targetId: string | null, 
+  startId: string, 
+  predecessors: Map<string, string>
+) => {
+  const pathNodes = new Set<string>();
+  const pathLinks = new Set<string>();
+  
+  if (targetId) {
+    let trace = targetId;
+    pathNodes.add(trace);
+    while (trace !== startId) {
+      const parent = predecessors.get(trace);
+      if (!parent) break;
+      pathNodes.add(parent);
+      pathLinks.add(`${parent}|${trace}`);
+      trace = parent;
+    }
+  }
+  return { pathNodes, pathLinks };
+};
+
+interface SearchResult {
+  nodes: Node[];
+  links: Link[];
+  predecessors: Map<string, string>;
+  winningNodeIds: string[];
+}
+
+export const runBFSSearch = (
+  startNode: Node, 
+  maxNodes: number, 
+  stopOnFirstWin: boolean
+): SearchResult => {
+  const visited = new Set<string>();
+  const nodes = [];
+  const links = [];
+  const queue = [startNode];
+  const predecessors = new Map<string, string>();
+  const winningNodeIds: string[] = [];
+
+  visited.add(startNode.id);
+  if (!stopOnFirstWin) nodes.push(startNode); 
+
+  let count = 0;
+
+  while (queue.length > 0 && count < maxNodes) {
+    const curr = queue.shift()!;
+    count++;
+
+    const transitions = getNextStates(curr.blocks);
+
+    for (const { blocks, hash, isWin } of transitions) {
+      if (!visited.has(hash)) {
+        visited.add(hash);
+        predecessors.set(hash, curr.id);
+
+        if (isWin) winningNodeIds.push(hash);
+
+        const newNode: Node = { 
+          id: hash, 
+          blocks: blocks, 
+          group: isWin ? 3 : 2, 
+          val: isWin ? 20 : 5,
+        };
+
+        nodes.push(newNode);
+        links.push({ source: curr.id, target: hash });
+
+        const shouldStopBranching = isWin && stopOnFirstWin;
+        
+        if (!shouldStopBranching) {
+            queue.push(newNode);
+        }
+
+        if (isWin && stopOnFirstWin) return { nodes, links, predecessors, winningNodeIds };
+      } 
+      else if (!stopOnFirstWin) {
+          links.push({ source: curr.id, target: hash });
+      }
+    }
+  }
+
+  return { nodes, links, predecessors, winningNodeIds };
+};
